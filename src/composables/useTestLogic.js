@@ -2,9 +2,11 @@ import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/userStore.js'
 import { useTestStore } from '../stores/testStore.js'
-import { calculateTestResult, findQuestionById } from '../utils/testUtils.js'
+import TestRegistry from '../core/test-engine/TestRegistry'
+import StorageManager from '../core/storage/StorageManager'
 import { useDemographics } from './useDemographics.js'
 
+// ИМПОРТЫ КОМПОНЕНТОВ НУЖНЫ - оставляем их!
 import SingleChoice from '../components/SingleChoice.vue'
 import MultipleChoice from '../components/MultipleChoice.vue'
 import ScaleQuestion from '../components/ScaleQuestion.vue'
@@ -14,7 +16,8 @@ export function useTestLogic() {
   const route = useRoute()
   const userStore = useUserStore()
   const testStore = useTestStore()
-  const { getUserDemographics, generatePersonalizedNotes } = useDemographics()
+  const storageManager = new StorageManager()
+  const { getUserDemographics } = useDemographics()
 
   // Состояние теста
   const testStarted = ref(false)
@@ -22,15 +25,23 @@ export function useTestLogic() {
   const currentAnswer = ref(null)
   const questionsFlow = ref([])
   const answeredQuestions = ref({})
-  const testData = ref(null)
+  const currentTest = ref(null)
   const isLoading = ref(false)
 
   // Вычисляемые свойства
-  const currentTest = computed(() => testStore.getCurrentTest)
+  const testProgress = computed(() => {
+    if (questionsFlow.value.length === 0) return 0
+
+    const answeredCount = Object.keys(answeredQuestions.value).length
+    if (answeredCount === 0) return 0
+
+    // Прогресс основан на текущей позиции в потоке
+    const currentProgress = ((currentQuestionIndex.value + 1) / questionsFlow.value.length) * 100
+    return Math.min(95, Math.round(currentProgress))
+  })
 
   const currentQuestion = computed(() => {
-    if (questionsFlow.value.length === 0) return null
-    return questionsFlow.value[currentQuestionIndex.value]
+    return questionsFlow.value[currentQuestionIndex.value] || null
   })
 
   const currentQuestionComponent = computed(() => {
@@ -43,18 +54,6 @@ export function useTestLogic() {
     }
 
     return componentMap[currentQuestion.value.type] || SingleChoice
-  })
-
-  // ИСПРАВЛЕНО: правильный расчет прогресса
-  const testProgress = computed(() => {
-    if (questionsFlow.value.length === 0) return 0
-
-    const answeredCount = Object.keys(answeredQuestions.value).length
-    if (answeredCount === 0) return 0
-
-    // Прогресс основан на текущей позиции в потоке
-    const currentProgress = ((currentQuestionIndex.value + 1) / questionsFlow.value.length) * 100
-    return Math.min(95, Math.round(currentProgress))
   })
 
   const currentQuestionNumber = computed(() => currentQuestionIndex.value + 1)
@@ -95,32 +94,90 @@ export function useTestLogic() {
     return true
   })
 
-  // Загрузка данных теста
+  // НОВАЯ СИСТЕМА: Загрузка теста через TestRegistry
   const loadTestData = async () => {
     try {
       isLoading.value = true
+      console.log('🔍 Loading test data for:', route.params.testId)
 
-      switch (route.params.testId) {
-        case 'stress-burnout':
-          const { stressBurnoutTest } = await import('../data/stressTest.js')
-          testData.value = stressBurnoutTest
-          break
-        default:
-          throw new Error('Unknown test ID')
+      // Автоматически загружаем все доступные тесты
+      await TestRegistry.discoverTests()
+
+      // Получаем конкретный тест
+      const testModule = TestRegistry.get(route.params.testId)
+
+      if (!testModule) {
+        console.error(`❌ Test not found: ${route.params.testId}`)
+
+        // Fallback на старую систему для совместимости
+        console.log('⚠️ Trying legacy system...')
+        await loadTestDataLegacy()
+        return
       }
+
+      currentTest.value = testModule
+      console.log('✅ Test loaded:', testModule.config.title)
     } catch (error) {
-      console.error('Failed to load test data:', error)
-      router.push('/dashboard')
+      console.error('❌ Failed to load test:', error)
+
+      // Fallback на старую систему
+      try {
+        await loadTestDataLegacy()
+      } catch (legacyError) {
+        console.error('❌ Legacy system also failed:', legacyError)
+        router.push('/dashboard')
+      }
     } finally {
       isLoading.value = false
     }
   }
 
+  // Fallback на старую систему для совместимости
+  const loadTestDataLegacy = async () => {
+    console.log('🔄 Using legacy test loading system')
+
+    switch (route.params.testId) {
+      case 'stress-burnout':
+        const { stressBurnoutTest } = await import('../data/stressTest.js')
+
+        // Создаем wrapper для старых данных
+        currentTest.value = {
+          config: stressBurnoutTest,
+          calculator: {
+            calculate: async (answers, demographics, config) => {
+              // Используем старую функцию
+              const { calculateTestResult } = await import('../utils/testUtils.js')
+              return calculateTestResult({
+                testId: config.id,
+                answeredQuestions: answers,
+                testData: config,
+                demographics,
+              })
+            },
+          },
+          interpreter: {
+            interpret: async (score) => {
+              // Используем старую функцию
+              const { getResultInterpretation } = await import('../utils/testUtils.js')
+              return getResultInterpretation(score, currentTest.value.config)
+            },
+            generatePersonalizedNotes: (score, demographics) => {
+              const { generatePersonalizedNotes } = useDemographics()
+              return generatePersonalizedNotes(score, demographics, currentTest.value.config)
+            },
+          },
+        }
+        break
+      default:
+        throw new Error(`Unknown test ID: ${route.params.testId}`)
+    }
+  }
+
   // Инициализация потока вопросов
   const initializeQuestionFlow = () => {
-    if (!testData.value?.initialQuestions) return
+    if (!currentTest.value?.config?.initialQuestions) return
 
-    questionsFlow.value = [...testData.value.initialQuestions]
+    questionsFlow.value = [...currentTest.value.config.initialQuestions]
     loadSavedAnswer()
   }
 
@@ -150,22 +207,21 @@ export function useTestLogic() {
     saveProgressToStorage()
   }
 
-  // Сохранение прогресса в localStorage
-  const saveProgressToStorage = () => {
-    const progressData = {
+  // НОВАЯ СИСТЕМА: Сохранение прогресса через StorageManager
+  const saveProgressToStorage = async () => {
+    const progress = {
       testId: route.params.testId,
       currentQuestionIndex: currentQuestionIndex.value,
       answeredQuestions: answeredQuestions.value,
       questionsFlow: questionsFlow.value,
-      savedAt: new Date().toISOString(),
     }
 
-    localStorage.setItem('test-progress', JSON.stringify(progressData))
+    await storageManager.saveProgress(userStore.user.id, route.params.testId, progress)
   }
 
   // Определение следующих вопросов
   const getNextQuestions = (question, answer) => {
-    if (!testData.value?.questionFlows) return []
+    if (!currentTest.value?.config?.questionFlows) return []
 
     console.log('Getting next questions for:', {
       questionId: question.id,
@@ -178,7 +234,7 @@ export function useTestLogic() {
     if (question.type === 'single' && question.options) {
       const selectedOption = question.options.find((opt) => opt.value === answer)
       if (selectedOption?.nextFlow) {
-        nextQuestions = testData.value.questionFlows[selectedOption.nextFlow] || []
+        nextQuestions = currentTest.value.config.questionFlows[selectedOption.nextFlow] || []
         console.log('Single choice next flow:', selectedOption.nextFlow, nextQuestions.length)
       }
     }
@@ -196,7 +252,7 @@ export function useTestLogic() {
         }
 
         if (meetsCondition && config.nextFlow) {
-          nextQuestions = testData.value.questionFlows[config.nextFlow] || []
+          nextQuestions = currentTest.value.config.questionFlows[config.nextFlow] || []
           console.log('Scale condition met:', conditionName, config, nextQuestions.length)
           break
         }
@@ -216,7 +272,7 @@ export function useTestLogic() {
       })
 
       if (selectedFlow) {
-        nextQuestions = testData.value.questionFlows[selectedFlow] || []
+        nextQuestions = currentTest.value.config.questionFlows[selectedFlow] || []
         console.log('Multiple choice next flow:', selectedFlow, nextQuestions.length)
       }
     }
@@ -224,7 +280,7 @@ export function useTestLogic() {
     return nextQuestions
   }
 
-  // ИСПРАВЛЕНО: переход к следующему вопросу
+  // Переход к следующему вопросу
   const goToNextQuestion = () => {
     if (!isCurrentQuestionAnswered.value) return
 
@@ -275,8 +331,8 @@ export function useTestLogic() {
     initializeQuestionFlow()
   }
 
-  // Завершение теста
-  const finishTest = () => {
+  // НОВАЯ СИСТЕМА: Завершение теста
+  const finishTest = async () => {
     try {
       console.log('Finishing test with answers:', Object.keys(answeredQuestions.value).length)
 
@@ -287,25 +343,38 @@ export function useTestLogic() {
       }
 
       const demographics = getUserDemographics()
-      const result = calculateTestResult({
-        testId: route.params.testId,
-        answeredQuestions: answeredQuestions.value,
-        testData: testData.value,
+
+      // Используем calculator из модуля теста
+      const result = currentTest.value.calculator.calculate(
+        answeredQuestions.value,
         demographics,
-      })
+        currentTest.value.config,
+      )
 
-      console.log('Test result calculated:', result)
-
-      // Добавляем персонализированные заметки
-      result.personalizedNotes = generatePersonalizedNotes(
+      // Используем interpreter для получения интерпретации
+      const interpretation = currentTest.value.interpreter.interpret(result.score)
+      const personalizedNotes = currentTest.value.interpreter.generatePersonalizedNotes(
         result.score,
         demographics,
-        testData.value,
       )
-      result.demographics = demographics
 
-      userStore.saveTestResult(result)
-      clearProgress()
+      const finalResult = {
+        testId: route.params.testId,
+        ...result,
+        interpretation,
+        personalizedNotes,
+        demographics,
+        completedAt: new Date().toISOString(),
+      }
+
+      console.log('Test result calculated:', finalResult)
+
+      // Сохраняем через StorageManager
+      await storageManager.saveTestResult(userStore.user.id, finalResult)
+      await storageManager.clearProgress(userStore.user.id, route.params.testId)
+
+      // Также сохраняем в старый формат для совместимости
+      userStore.saveTestResult(finalResult)
 
       console.log('Navigating to results page...')
       router.push(`/result/${route.params.testId}`)
@@ -325,32 +394,49 @@ export function useTestLogic() {
     }
   }
 
-  // Загрузка сохраненного прогресса
-  const loadSavedProgress = () => {
+  // НОВАЯ СИСТЕМА: Загрузка сохраненного прогресса
+  const loadSavedProgress = async () => {
     try {
-      const saved = localStorage.getItem('test-progress')
-      if (!saved) return
+      const progress = await storageManager.loadProgress(userStore.user.id, route.params.testId)
 
-      const progress = JSON.parse(saved)
-      if (progress.testId !== route.params.testId) return
+      if (progress) {
+        currentQuestionIndex.value = progress.currentQuestionIndex || 0
+        answeredQuestions.value = progress.answeredQuestions || {}
+        questionsFlow.value = progress.questionsFlow || []
+        testStarted.value = questionsFlow.value.length > 0
 
-      currentQuestionIndex.value = progress.currentQuestionIndex || 0
-      answeredQuestions.value = progress.answeredQuestions || {}
-      questionsFlow.value = progress.questionsFlow || []
-      testStarted.value = questionsFlow.value.length > 0
+        if (testStarted.value) {
+          loadSavedAnswer()
+        }
 
-      if (testStarted.value) {
-        loadSavedAnswer()
+        console.log('✅ Loaded saved progress')
+      } else {
+        console.log('📝 No saved progress found')
       }
     } catch (error) {
-      console.error('Failed to load saved progress:', error)
-      clearProgress()
-    }
-  }
+      console.error('❌ Failed to load saved progress:', error)
+      // Fallback на старую систему
+      try {
+        const saved = localStorage.getItem('test-progress')
+        if (!saved) return
 
-  // Очистка прогресса
-  const clearProgress = () => {
-    localStorage.removeItem('test-progress')
+        const progress = JSON.parse(saved)
+        if (progress.testId !== route.params.testId) return
+
+        currentQuestionIndex.value = progress.currentQuestionIndex || 0
+        answeredQuestions.value = progress.answeredQuestions || {}
+        questionsFlow.value = progress.questionsFlow || []
+        testStarted.value = questionsFlow.value.length > 0
+
+        if (testStarted.value) {
+          loadSavedAnswer()
+        }
+
+        console.log('✅ Loaded progress from legacy system')
+      } catch (legacyError) {
+        console.error('❌ Failed to load legacy progress:', legacyError)
+      }
+    }
   }
 
   // Инициализация
@@ -361,7 +447,7 @@ export function useTestLogic() {
     }
 
     await loadTestData()
-    loadSavedProgress()
+    await loadSavedProgress()
   }
 
   // Watcher для автосохранения ответов
@@ -374,14 +460,13 @@ export function useTestLogic() {
     currentAnswer,
     questionsFlow,
     answeredQuestions,
-    testData,
+    currentTest,
     isLoading,
 
     // Вычисляемые свойства
-    currentTest,
+    testProgress,
     currentQuestion,
     currentQuestionComponent,
-    testProgress,
     currentQuestionNumber,
     totalQuestions,
     canGoToPrevious,
