@@ -10,13 +10,18 @@
 
       <div class="test-header__title-section">
         <h1 class="test-header__title">{{ currentTest?.title }}</h1>
-        <div class="test-header__progress-info">
+        <div v-if="testStarted" class="test-header__progress-info">
           Вопрос {{ currentQuestionNumber }} из {{ totalQuestions }}
         </div>
       </div>
     </div>
 
-    <ProgressBar :progress="testProgress" label="Прогресс теста" class="test-header__progress" />
+    <ProgressBar
+      v-if="testStarted"
+      :progress="testProgress"
+      label="Прогресс теста"
+      class="test-header__progress"
+    />
   </header>
 </template>
 
@@ -24,6 +29,7 @@
 import ProgressBar from '../ProgressBar.vue'
 
 defineProps({
+  testStarted: Boolean,
   currentTest: Object,
   testProgress: Number,
   currentQuestionNumber: Number,

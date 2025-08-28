@@ -1,6 +1,5 @@
 <template>
   <div class="single-choice">
-    <h1>test</h1>
     <h3 class="single-choice__question">{{ question }}</h3>
 
     <div class="single-choice__options">

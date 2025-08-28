@@ -6,6 +6,7 @@
       :test-progress="testProgress"
       :current-question-number="currentQuestionNumber"
       :total-questions="totalQuestions"
+      :testStarted="testStarted"
       @go-back="goBack"
     />
 
