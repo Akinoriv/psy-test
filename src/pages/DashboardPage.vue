@@ -4,29 +4,33 @@
     <header class="page__header">
       <div class="container">
         <div class="header">
-          <div class="header__user-info">
+          <div class="header__info">
             <h1 class="heading heading--h1">Добро пожаловать, {{ userName }}!</h1>
             <p class="text text--secondary">Выберите психологический тест для прохождения</p>
           </div>
 
-          <div class="header__user-menu">
-            <div class="user-avatar">
-              {{ userInitials }}
-            </div>
-            <button @click="showUserMenu = !showUserMenu" class="btn btn--icon">
-              <span class="icon">▼</span>
-            </button>
+          <div class="header__actions">
+            <div class="user-menu">
+              <div class="user-avatar">{{ userInitials }}</div>
+              <button @click="showUserMenu = !showUserMenu" class="btn btn--ghost btn--icon">
+                <span class="icon">▼</span>
+              </button>
 
-            <div v-if="showUserMenu" class="dropdown">
-              <div class="dropdown__item">
-                <strong>{{ user.name }}</strong>
+              <div v-if="showUserMenu" class="dropdown dropdown--right">
+                <div class="dropdown__item">
+                  <strong>{{ user.name }}</strong>
+                </div>
+                <div class="dropdown__item text--secondary">{{ user.email }}</div>
+                <hr class="divider" />
+                <button @click="viewResults" class="dropdown__button">
+                  <span class="icon">📊</span>
+                  Мои результаты
+                </button>
+                <button @click="logout" class="dropdown__button">
+                  <span class="icon">🚪</span>
+                  Выйти
+                </button>
               </div>
-              <div class="dropdown__item text--secondary">
-                {{ user.email }}
-              </div>
-              <hr class="divider" />
-              <button @click="viewResults" class="dropdown__button">Мои результаты</button>
-              <button @click="logout" class="dropdown__button">Выйти</button>
             </div>
           </div>
         </div>
@@ -37,24 +41,38 @@
     <main class="page__main">
       <div class="container">
         <!-- Статистика пользователя -->
-        <div v-if="userStats.totalTests > 0" class="stats">
-          <div class="card stats__card">
-            <h3 class="stats__title">Пройдено тестов</h3>
-            <div class="stats__value">{{ userStats.totalTests }}</div>
+        <section v-if="userStats.totalTests > 0" class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card__icon">🎯</div>
+              <div class="stat-card__content">
+                <h3 class="stat-card__title">Пройдено тестов</h3>
+                <div class="stat-card__value">{{ userStats.totalTests }}</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__icon">📈</div>
+              <div class="stat-card__content">
+                <h3 class="stat-card__title">Средний балл</h3>
+                <div class="stat-card__value">{{ userStats.averageScore }}%</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__icon">📅</div>
+              <div class="stat-card__content">
+                <h3 class="stat-card__title">В этом месяце</h3>
+                <div class="stat-card__value">{{ userStats.testsThisMonth }}</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__icon">⏰</div>
+              <div class="stat-card__content">
+                <h3 class="stat-card__title">Последний тест</h3>
+                <div class="stat-card__value stat-card__value--small">{{ lastTestDate }}</div>
+              </div>
+            </div>
           </div>
-          <div class="card stats__card">
-            <h3 class="stats__title">Средний балл</h3>
-            <div class="stats__value">{{ userStats.averageScore }}%</div>
-          </div>
-          <div class="card stats__card">
-            <h3 class="stats__title">В этом месяце</h3>
-            <div class="stats__value">{{ userStats.testsThisMonth }}</div>
-          </div>
-          <div class="card stats__card">
-            <h3 class="stats__title">Последний тест</h3>
-            <div class="stats__value stats__value--small">{{ lastTestDate }}</div>
-          </div>
-        </div>
+        </section>
 
         <!-- Состояние загрузки -->
         <div v-if="isLoading" class="loading-state">
@@ -63,8 +81,8 @@
         </div>
 
         <!-- Список тестов -->
-        <section v-else class="section">
-          <h2 class="heading heading--h2">Доступные тесты</h2>
+        <section v-else class="tests-section">
+          <h2 class="section__title">Доступные тесты</h2>
 
           <div v-if="availableTests.length === 0" class="empty-state">
             <div class="empty-state__icon">🧪</div>
@@ -77,19 +95,27 @@
               v-for="test in availableTests"
               :key="test.id"
               class="test-card"
-              :class="{ 'test-card--unavailable': !test.isAvailable }"
+              :class="{ 
+                'test-card--unavailable': !test.isAvailable,
+                'test-card--completed': hasTestResult(test.id)
+              }"
               @click="test.isAvailable && startTest(test.id)"
             >
+              <!-- Заголовок теста -->
               <div class="test-card__header">
                 <div class="test-card__icon">{{ test.icon }}</div>
-                <div>
+                <div class="test-card__header-content">
                   <h3 class="test-card__title">{{ test.title }}</h3>
-                  <div class="badge badge--category">{{ getCategoryName(test.category) }}</div>
+                  <div class="test-card__badges">
+                    <span class="badge badge--category">{{ getCategoryName(test.category) }}</span>
+                  </div>
                 </div>
               </div>
 
+              <!-- Описание -->
               <p class="test-card__description">{{ test.description }}</p>
 
+              <!-- Метаинформация -->
               <div class="test-card__meta">
                 <div class="meta-item">
                   <span class="icon">⏱️</span>
@@ -101,12 +127,14 @@
                 </div>
               </div>
 
+              <!-- Теги -->
               <div class="test-card__tags">
                 <span v-for="tag in test.tags.slice(0, 3)" :key="tag" class="badge badge--tag">
                   {{ tag }}
                 </span>
               </div>
 
+              <!-- Действие -->
               <div class="test-card__action">
                 <BaseButton
                   v-if="test.isAvailable"
@@ -122,8 +150,8 @@
                 </div>
               </div>
 
-              <!-- Индикатор прохождения -->
-              <div v-if="hasTestResult(test.id)" class="test-card__completed">
+              <!-- Индикатор завершения -->
+              <div v-if="hasTestResult(test.id)" class="test-card__completed-badge">
                 <span class="icon">✓</span>
                 <span>Пройден</span>
               </div>
@@ -136,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/userStore.js'
 import { useTestStore } from '../stores/testStore.js'
@@ -160,7 +188,7 @@ const userInitials = computed(() => {
   if (!user.value?.name) return 'У'
   return user.value.name
     .split(' ')
-    .map((n) => n[0])
+    .map(n => n[0])
     .join('')
     .toUpperCase()
 })
@@ -175,7 +203,7 @@ const lastTestDate = computed(() => {
 
 // Методы
 const hasTestResult = (testId) => {
-  return testResults.value.some((result) => result.testId === testId)
+  return testResults.value.some(result => result.testId === testId)
 }
 
 const getCategoryName = (category) => {
@@ -248,8 +276,18 @@ onMounted(async () => {
 
 // Закрываем меню при клике вне его
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.header__user-menu')) {
+  if (!event.target.closest('.user-menu')) {
     showUserMenu.value = false
   }
 }
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
+
+<!-- Без style scoped - используем универсальные классы -->
