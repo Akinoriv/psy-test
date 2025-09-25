@@ -1,153 +1,208 @@
+// stores/testStore.js - Реестр тестов в store
 import { defineStore } from 'pinia'
-import TestRegistry from '../core/test-engine/TestRegistry.js'
 
-export const useTestStore = defineStore('test', {
+export const useTestStore = defineStore('tests', {
   state: () => ({
-    availableTests: [
-      {
-        id: 'stress-burnout',
-        title: 'Тест на стресс и выгорание',
-        description: 'Оцените ваш уровень стресса и профессионального выгорания',
-        duration: '10-15 минут',
-        questionsCount: 'до 20 вопросов',
-        category: 'Стресс и эмоциональное состояние',
-      },
-      {
-        id: 'husband-readiness',
-        title: 'Готовность стать мужем Вироники',
-        description: 'Узнай, подходишь ли ты мне в мужья! 💕',
-        duration: '5-7 минут',
-        questionsCount: '2 вопроса',
-        category: 'Личные отношения',
-      },
-      // Новые тесты будут добавляться автоматически через TestRegistry
-    ],
-    currentTest: null,
-    currentAnswers: {},
-    currentQuestionIndex: 0,
-    testProgress: 0,
+    availableTests: [],
+    loadedTests: new Map(), // Кеш загруженных тестов
+    isLoading: false,
   }),
 
   getters: {
-    getCurrentTest: (state) => state.currentTest,
-    getCurrentProgress: (state) => state.testProgress,
-    getCurrentAnswers: (state) => state.currentAnswers,
-    getAvailableTests: (state) => state.availableTests,
+    getAllTests: (state) => state.availableTests,
+    
+    getTestById: (state) => (testId) => {
+      return state.availableTests.find(test => test.id === testId) || null
+    },
+
+    getTestsByCategory: (state) => (category) => {
+      return state.availableTests.filter(test => test.category === category)
+    },
+
+    isTestLoaded: (state) => (testId) => {
+      return state.loadedTests.has(testId)
+    },
+
+    getLoadedTest: (state) => (testId) => {
+      return state.loadedTests.get(testId) || null
+    }
   },
 
   actions: {
-    // НОВАЯ ФУНКЦИЯ: Загрузка доступных тестов из TestRegistry
-    async loadAvailableTests() {
-      console.log('📚 Loading available tests...')
+    // =================== ИНИЦИАЛИЗАЦИЯ ===================
+    
+    async initializeTests() {
+      console.log('🧪 Initializing test registry...')
+      
+      try {
+        this.isLoading = true
+        
+        // Регистрируем все доступные тесты
+        await this._registerAllTests()
+        
+        console.log(`✅ Initialized ${this.availableTests.length} tests`)
+      } catch (error) {
+        console.error('❌ Failed to initialize tests:', error)
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // =================== ЗАГРУЗКА ТЕСТОВ ===================
+    
+    async loadTest(testId) {
+      console.log('📖 Loading test:', testId)
+
+      // Проверяем кеш
+      if (this.loadedTests.has(testId)) {
+        console.log('✨ Test loaded from cache:', testId)
+        return this.loadedTests.get(testId)
+      }
 
       try {
-        // Загружаем тесты через TestRegistry
-        const registeredTests = await TestRegistry.discoverTests()
+        let testModule = null
 
-        // Обновляем список доступных тестов
-        this.availableTests = registeredTests.map((testModule) => ({
-          id: testModule.config.id,
-          title: testModule.config.title,
-          description: testModule.config.description,
-          duration: testModule.config.estimatedTime || 'неизвестно',
-          questionsCount: this.estimateQuestionCount(testModule.config),
-          category: testModule.config.category || 'Общие',
-        }))
-
-        console.log(`✅ Loaded ${this.availableTests.length} tests`)
-      } catch (error) {
-        console.error('❌ Failed to load tests from registry:', error)
-        console.log('📝 Using static test list')
-        // Оставляем статический список из state
-      }
-    },
-
-    // Приблизительный подсчет количества вопросов
-    estimateQuestionCount(config) {
-      let count = config.initialQuestions?.length || 0
-
-      if (config.questionFlows) {
-        // Берем среднее количество вопросов из всех потоков
-        const flowCounts = Object.values(config.questionFlows).map((flow) => flow.length)
-
-        if (flowCounts.length > 0) {
-          const avgFlow = flowCounts.reduce((a, b) => a + b, 0) / flowCounts.length
-          count += Math.round(avgFlow)
+        // Динамическая загрузка тестов
+        switch (testId) {
+          case 'husband-readiness':
+            testModule = await import('../tests/husband-readiness/index.js')
+            break
+            
+          case 'stress-burnout':
+            testModule = await import('../tests/stress-burnout/index.js')
+            break
+            
+          default:
+            throw new Error(`Unknown test: ${testId}`)
         }
+
+        // Кешируем загруженный тест
+        const loadedTest = testModule.default
+        this.loadedTests.set(testId, loadedTest)
+
+        console.log('✅ Test loaded:', testId, loadedTest.config.title)
+        return loadedTest
+      } catch (error) {
+        console.error('❌ Failed to load test:', testId, error)
+        throw error
       }
-
-      return count > 0 ? `до ${count} вопросов` : 'переменное количество'
     },
 
-    startTest(testId) {
-      console.log('🚀 Starting test:', testId)
+    // =================== ПРИВАТНЫЕ МЕТОДЫ ===================
+    
+    async _registerAllTests() {
+      // Статический реестр тестов (в будущем можно загружать с сервера)
+      this.availableTests = [
+        {
+          id: 'husband-readiness',
+          title: 'Готовность к серьезным отношениям',
+          description: 'Определите, готовы ли вы к серьезным отношениям и созданию семьи',
+          category: 'relationships',
+          duration: 5,
+          difficulty: 'easy',
+          tags: ['отношения', 'любовь', 'семья'],
+          icon: '💕',
+          color: '#10b981',
+          isAvailable: true,
+          createdAt: '2024-01-01',
+        },
+        {
+          id: 'stress-burnout',
+          title: 'Уровень стресса и выгорания',
+          description: 'Оцените ваш текущий уровень стресса и риск профессионального выгорания',
+          category: 'wellbeing',
+          duration: 8,
+          difficulty: 'medium',
+          tags: ['стресс', 'работа', 'здоровье'],
+          icon: '🧘',
+          color: '#6366f1',
+          isAvailable: true,
+          createdAt: '2024-01-01',
+        },
+        // Заготовки для будущих тестов
+        {
+          id: 'personality-type',
+          title: 'Тип личности',
+          description: 'Определите ваш психологический тип личности',
+          category: 'personality',
+          duration: 12,
+          difficulty: 'medium',
+          tags: ['личность', 'характер', 'психотип'],
+          icon: '🎭',
+          color: '#f59e0b',
+          isAvailable: false, // Пока не готов
+          createdAt: '2024-02-01',
+        },
+        {
+          id: 'anxiety-level',
+          title: 'Уровень тревожности',
+          description: 'Измерьте ваш уровень тревожности и получите рекомендации',
+          category: 'wellbeing',
+          duration: 10,
+          difficulty: 'easy',
+          tags: ['тревожность', 'психология', 'здоровье'],
+          icon: '😰',
+          color: '#ef4444',
+          isAvailable: false, // Пока не готов
+          createdAt: '2024-02-15',
+        }
+      ]
 
-      this.currentTest = this.getTestById(testId)
-      this.currentAnswers = {}
-      this.currentQuestionIndex = 0
-      this.testProgress = 0
-
-      console.log('✅ Test started:', this.currentTest?.title)
+      console.log('📋 Registered tests:', this.availableTests.map(t => t.id))
     },
 
-    getTestById(testId) {
-      return this.availableTests.find((test) => test.id === testId)
+    // Добавление нового теста (для админки в будущем)
+    async addTest(testConfig) {
+      console.log('➕ Adding new test:', testConfig.id)
+      
+      this.availableTests.push({
+        ...testConfig,
+        createdAt: new Date().toISOString(),
+      })
+      
+      console.log('✅ Test added to registry')
     },
 
-    saveAnswer(questionId, answer) {
-      this.currentAnswers[questionId] = answer
-      this.updateProgress()
-
-      console.log('💾 Answer saved for question:', questionId)
+    // Обновление статуса теста
+    async updateTestStatus(testId, isAvailable) {
+      const test = this.availableTests.find(t => t.id === testId)
+      
+      if (test) {
+        test.isAvailable = isAvailable
+        console.log(`✅ Test ${testId} status updated:`, isAvailable)
+      }
     },
 
-    updateProgress() {
-      if (!this.currentTest) return
-
-      const totalQuestions = this.getTotalQuestions()
-      const answeredQuestions = Object.keys(this.currentAnswers).length
-      this.testProgress = Math.round((answeredQuestions / totalQuestions) * 100)
-
-      console.log(`📊 Progress updated: ${this.testProgress}%`)
-    },
-
-    getTotalQuestions() {
-      // Для реактивных тестов это будет более сложная логика
-      return this.currentTest?.questionsCount || 20
-    },
-
-    resetTest() {
-      console.log('🔄 Resetting test state')
-
-      this.currentTest = null
-      this.currentAnswers = {}
-      this.currentQuestionIndex = 0
-      this.testProgress = 0
-    },
-
-    // НОВАЯ ФУНКЦИЯ: Получение статистики по тестам
-    getTestStats() {
+    // Получение статистики тестов
+    getTestsStats() {
+      const totalTests = this.availableTests.length
+      const availableTests = this.availableTests.filter(t => t.isAvailable).length
+      const categories = [...new Set(this.availableTests.map(t => t.category))]
+      
       return {
-        totalTests: this.availableTests.length,
-        categories: [...new Set(this.availableTests.map((t) => t.category))],
-        mostPopular: this.availableTests[0]?.id || null, // Пока просто первый
+        totalTests,
+        availableTests,
+        inDevelopment: totalTests - availableTests,
+        categories: categories.length,
+        categoriesList: categories
       }
     },
 
-    // НОВАЯ ФУНКЦИЯ: Поиск тестов по категории
-    getTestsByCategory(category) {
-      return this.availableTests.filter((test) => test.category === category)
+    // Поиск тестов
+    searchTests(query) {
+      const searchQuery = query.toLowerCase().trim()
+      
+      return this.availableTests.filter(test => {
+        return test.title.toLowerCase().includes(searchQuery) ||
+               test.description.toLowerCase().includes(searchQuery) ||
+               test.tags.some(tag => tag.toLowerCase().includes(searchQuery))
+      })
     },
 
-    // НОВАЯ ФУНКЦИЯ: Поиск тестов
-    searchTests(query) {
-      const lowerQuery = query.toLowerCase()
-      return this.availableTests.filter(
-        (test) =>
-          test.title.toLowerCase().includes(lowerQuery) ||
-          test.description.toLowerCase().includes(lowerQuery) ||
-          test.category.toLowerCase().includes(lowerQuery),
-      )
-    },
-  },
+    // Очистка кеша (для разработки)
+    clearCache() {
+      this.loadedTests.clear()
+      console.log('🗑️ Test cache cleared')
+    }
+  }
 })

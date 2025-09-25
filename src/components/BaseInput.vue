@@ -4,7 +4,6 @@
       {{ label }}
       <span v-if="required" class="input-group__required">*</span>
     </label>
-
     <input
       :id="inputId"
       :value="modelValue"
@@ -17,11 +16,9 @@
       @focus="$emit('focus', $event)"
       @blur="$emit('blur', $event)"
     />
-
     <div v-if="error" class="input-group__error">
       {{ error }}
     </div>
-
     <div v-if="hint && !error" class="input-group__hint">
       {{ hint }}
     </div>
@@ -36,47 +33,28 @@ const props = defineProps({
     type: [String, Number],
     default: '',
   },
-  label: {
-    type: String,
-    default: '',
-  },
-  type: {
-    type: String,
-    default: 'text',
-  },
-  placeholder: {
-    type: String,
-    default: '',
-  },
-  required: {
-    type: Boolean,
-    default: false,
-  },
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
-  error: {
-    type: String,
-    default: '',
-  },
-  hint: {
-    type: String,
-    default: '',
-  },
+  label: { type: String, default: '' },
+  type: { type: String, default: 'text' },
+  placeholder: { type: String, default: '' },
+  required: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
+  error: { type: String, default: '' },
+  hint: { type: String, default: '' },
 })
 
-defineEmits(['update:modelValue', 'focus', 'blur'])
+const emit = defineEmits(['update:modelValue', 'focus', 'blur'])
 
 const inputId = computed(() => `input-${Math.random().toString(36).substr(2, 9)}`)
-
 const inputClasses = computed(() => {
-  const baseClasses = 'input-group__input'
-  const errorClass = props.error ? 'input-group__input--error' : ''
-  const disabledClass = props.disabled ? 'input-group__input--disabled' : ''
-
-  return [baseClasses, errorClass, disabledClass].filter(Boolean).join(' ')
+  const base = 'input-group__input'
+  const error = props.error ? 'input-group__input--error' : ''
+  const disabled = props.disabled ? 'input-group__input--disabled' : ''
+  return [base, error, disabled].filter(Boolean).join(' ')
 })
+
+function handleInput(e) {
+  emit('update:modelValue', e.target.value)
+}
 </script>
 
 <style scoped>

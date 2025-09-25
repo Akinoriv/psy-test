@@ -1,14 +1,14 @@
 <template>
-  <div class="registration-page">
-    <div class="registration-page__container">
-      <div class="registration-page__header">
-        <h1 class="registration-page__title">Добро пожаловать!</h1>
-        <p class="registration-page__subtitle">
+  <div class="auth-page">
+    <div class="auth-page__container">
+      <div class="auth-page__header">
+        <h1 class="heading heading--h1">Добро пожаловать!</h1>
+        <p class="text text--secondary text--center">
           Пройдите регистрацию, чтобы получить персонализированные психологические тесты
         </p>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="registration-page__form">
+      <form @submit.prevent="handleSubmit" class="form">
         <BaseInput
           v-model="form.name"
           label="Имя"
@@ -35,38 +35,28 @@
           :error="errors.age"
         />
 
-        <div class="registration-page__field">
-          <label class="registration-page__label">Пол</label>
-          <div class="registration-page__radio-group">
-            <label class="registration-page__radio-option">
-              <input
-                type="radio"
-                value="male"
-                v-model="form.gender"
-                class="registration-page__radio"
-              />
-              <span>Мужской</span>
+        <div class="form__field">
+          <label class="form__label">Пол</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" value="male" v-model="form.gender" class="radio-option__input" />
+              <span class="radio-option__label">Мужской</span>
             </label>
-            <label class="registration-page__radio-option">
+            <label class="radio-option">
               <input
                 type="radio"
                 value="female"
                 v-model="form.gender"
-                class="registration-page__radio"
+                class="radio-option__input"
               />
-              <span>Женский</span>
+              <span class="radio-option__label">Женский</span>
             </label>
-            <label class="registration-page__radio-option">
-              <input
-                type="radio"
-                value="other"
-                v-model="form.gender"
-                class="registration-page__radio"
-              />
-              <span>Другой</span>
+            <label class="radio-option">
+              <input type="radio" value="other" v-model="form.gender" class="radio-option__input" />
+              <span class="radio-option__label">Другой</span>
             </label>
           </div>
-          <div v-if="errors.gender" class="registration-page__error">
+          <div v-if="errors.gender" class="form__error">
             {{ errors.gender }}
           </div>
         </div>
@@ -78,55 +68,44 @@
           :error="errors.occupation"
         />
 
-        <div class="registration-page__consent">
-          <label class="registration-page__consent-label">
-            <input
-              type="checkbox"
-              v-model="form.dataConsent"
-              class="registration-page__checkbox"
-              required
-            />
-            <span class="registration-page__consent-text">
+        <div class="consent">
+          <label class="consent__label">
+            <input type="checkbox" v-model="form.dataConsent" class="consent__checkbox" required />
+            <span class="consent__text">
               Я согласен(а) на сбор и обработку персональных данных в соответствии с
-              <a href="#" class="registration-page__link">Политикой конфиденциальности</a>. Данные
-              будут использованы исключительно для анализа результатов тестирования и улучшения
-              качества сервиса.
+              <a href="#" class="link">Политикой конфиденциальности</a>. Данные будут использованы
+              исключительно для анализа результатов тестирования и улучшения качества сервиса.
             </span>
           </label>
-          <div v-if="errors.dataConsent" class="registration-page__error">
+          <div v-if="errors.dataConsent" class="form__error">
             {{ errors.dataConsent }}
           </div>
         </div>
 
-        <div class="registration-page__consent">
-          <label class="registration-page__consent-label">
-            <input
-              type="checkbox"
-              v-model="form.researchConsent"
-              class="registration-page__checkbox"
-            />
-            <span class="registration-page__consent-text">
+        <div class="consent">
+          <label class="consent__label">
+            <input type="checkbox" v-model="form.researchConsent" class="consent__checkbox" />
+            <span class="consent__text">
               Я согласен(а) на использование анонимных данных для научных исследований в области
               психологии (не обязательно)
             </span>
           </label>
         </div>
 
-        <BaseButton
-          type="submit"
-          :disabled="isLoading"
-          full-width
-          class="registration-page__submit"
-        >
+        <BaseButton type="submit" :disabled="isLoading" full-width class="form__submit">
           {{ isLoading ? 'Регистрируем...' : 'Зарегистрироваться' }}
         </BaseButton>
+
+        <div v-if="errors.submit" class="form__error form__error--submit">
+          {{ errors.submit }}
+        </div>
       </form>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/userStore.js'
 import BaseInput from '../components/BaseInput.vue'
@@ -151,7 +130,7 @@ const errors = ref({})
 
 const validateForm = () => {
   const newErrors = {}
-
+  console.log('form :>> ', form)
   if (!form.name.trim()) {
     newErrors.name = 'Имя обязательно для заполнения'
   } else if (form.name.trim().length < 2) {
@@ -183,151 +162,54 @@ const validateForm = () => {
 }
 
 const handleSubmit = async () => {
-  // if (!validateForm()) {
-  //   return
-  // }
+  console.log('📝 Registration form submitted')
+
+  if (!validateForm()) {
+    console.log('❌ Form validation failed:', errors.value)
+    return
+  }
 
   isLoading.value = true
+  errors.value = {}
 
   try {
-    await userStore.registerUser({
+    console.log('🔄 Registering user...')
+
+    const userData = {
       name: form.name.trim(),
-      email: form.email.trim(),
+      email: form.email.trim().toLowerCase(),
       age: parseInt(form.age),
       gender: form.gender,
       occupation: form.occupation.trim(),
       dataConsent: form.dataConsent,
       researchConsent: form.researchConsent,
-    })
+    }
 
+    console.log('👤 User data:', userData)
+
+    await userStore.registerUser(userData)
+
+    console.log('✅ User registered successfully')
     router.push('/dashboard')
   } catch (error) {
-    console.error('Registration failed:', error)
+    console.error('❌ Registration failed:', error)
     errors.value.submit = 'Ошибка регистрации. Попробуйте еще раз.'
   } finally {
     isLoading.value = false
   }
 }
+
+// Проверяем, если пользователь уже залогинен
+onMounted(async () => {
+  console.log('🔧 Registration page mounted')
+
+  // Загружаем пользователя если есть сохраненные данные
+  await userStore.loadUser()
+
+  // Если уже аутентифицирован - перенаправляем на дашборд
+  if (userStore.isAuthenticated) {
+    console.log('✅ User already authenticated, redirecting to dashboard')
+    router.push('/dashboard')
+  }
+})
 </script>
-
-<style scoped>
-.registration-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.registration-page__container {
-  background: white;
-  border-radius: 16px;
-  padding: 40px;
-  width: 100%;
-  max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.registration-page__header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.registration-page__title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 8px;
-}
-
-.registration-page__subtitle {
-  font-size: 16px;
-  color: #6b7280;
-  line-height: 1.5;
-}
-
-.registration-page__form {
-  display: flex;
-  flex-direction: column;
-}
-
-.registration-page__field {
-  margin-bottom: 16px;
-}
-
-.registration-page__label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #374151;
-  font-size: 14px;
-}
-
-.registration-page__radio-group {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.registration-page__radio-option {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.registration-page__radio {
-  margin-right: 8px;
-  accent-color: #6366f1;
-}
-
-.registration-page__consent {
-  margin-bottom: 20px;
-}
-
-.registration-page__consent-label {
-  display: flex;
-  align-items: flex-start;
-  cursor: pointer;
-}
-
-.registration-page__checkbox {
-  margin-right: 12px;
-  margin-top: 4px;
-  accent-color: #6366f1;
-  flex-shrink: 0;
-}
-
-.registration-page__consent-text {
-  font-size: 14px;
-  color: #4b5563;
-  line-height: 1.5;
-}
-
-.registration-page__link {
-  color: #6366f1;
-  text-decoration: underline;
-}
-
-.registration-page__error {
-  margin-top: 4px;
-  color: #ef4444;
-  font-size: 12px;
-}
-
-.registration-page__submit {
-  margin-top: 16px;
-}
-
-@media (max-width: 600px) {
-  .registration-page__container {
-    margin: 20px;
-    padding: 24px;
-  }
-
-  .registration-page__radio-group {
-    flex-direction: column;
-    gap: 8px;
-  }
-}
-</style>
