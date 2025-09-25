@@ -1,16 +1,14 @@
-// src/core/storage/StorageManager.js
+// src/core/storage/StorageManager.js - ИСПРАВЛЕНО!
+
 class StorageManager {
   constructor() {
     this.version = '1.0.0'
     this.adapters = {
       local: new LocalStorageAdapter(),
-      // indexed: new IndexedDBAdapter(), // для будущего использования
-      // api: new APIAdapter() // для работы с сервером
     }
     this.currentAdapter = this.adapters.local
   }
   
-  // Установка адаптера хранения
   setAdapter(adapterType) {
     if (this.adapters[adapterType]) {
       this.currentAdapter = this.adapters[adapterType]
@@ -20,7 +18,6 @@ class StorageManager {
     }
   }
   
-  // Сохранение результата теста
   async saveTestResult(userId, result) {
     const resultWithMetadata = {
       ...result,
@@ -34,7 +31,6 @@ class StorageManager {
     return await this.currentAdapter.save('test-results', resultWithMetadata)
   }
   
-  // Загрузка результатов
   async loadTestResults(userId, testId = null) {
     const allResults = await this.currentAdapter.load('test-results') || []
     
@@ -48,7 +44,6 @@ class StorageManager {
     return userResults.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
   }
   
-  // Сохранение прогресса теста
   async saveProgress(userId, testId, progress) {
     const key = `progress-${userId}-${testId}`
     const progressWithMetadata = {
@@ -62,7 +57,6 @@ class StorageManager {
     return await this.currentAdapter.save(key, progressWithMetadata)
   }
   
-  // Загрузка прогресса
   async loadProgress(userId, testId) {
     const key = `progress-${userId}-${testId}`
     const progress = await this.currentAdapter.load(key)
@@ -74,20 +68,17 @@ class StorageManager {
     return progress
   }
   
-  // Очистка старого прогресса
   async clearProgress(userId, testId) {
     const key = `progress-${userId}-${testId}`
     console.log('🗑️ Clearing progress:', testId)
     return await this.currentAdapter.remove(key)
   }
   
-  // Сохранение данных пользователя
   async saveUser(user) {
     console.log('💾 Saving user:', user.name)
     return await this.currentAdapter.save('user', user)
   }
   
-  // Загрузка данных пользователя
   async loadUser() {
     const user = await this.currentAdapter.load('user')
     if (user) {
@@ -101,19 +92,29 @@ class StorageManager {
   }
 }
 
-// Адаптер для localStorage (улучшенная версия)
+// ИСПРАВЛЕННЫЙ LocalStorageAdapter
 class LocalStorageAdapter {
   async save(key, data) {
     try {
       const storageKey = `psy-${key}`
       
       if (key === 'test-results') {
-        // Для результатов тестов - добавляем к существующему массиву
-        const existing = this.load(key) || []
-        const updated = [...existing, data]
-        localStorage.setItem(storageKey, JSON.stringify(updated))
+        // ИСПРАВЛЕНО: Безопасная загрузка массива
+        let existing = []
+        try {
+          const stored = localStorage.getItem(storageKey)
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            existing = Array.isArray(parsed) ? parsed : []
+          }
+        } catch (error) {
+          console.warn('Failed to parse existing results, starting fresh:', error)
+          existing = []
+        }
+        
+        existing.push(data)
+        localStorage.setItem(storageKey, JSON.stringify(existing))
       } else {
-        // Для остальных данных - перезаписываем
         localStorage.setItem(storageKey, JSON.stringify(data))
       }
       
@@ -128,10 +129,25 @@ class LocalStorageAdapter {
     try {
       const storageKey = `psy-${key}`
       const item = localStorage.getItem(storageKey)
-      return item ? JSON.parse(item) : null
+      
+      if (!item) {
+        // ИСПРАВЛЕНО: Для test-results возвращаем пустой массив
+        return key === 'test-results' ? [] : null
+      }
+      
+      const parsed = JSON.parse(item)
+      
+      // ИСПРАВЛЕНО: Проверяем что test-results это массив
+      if (key === 'test-results' && !Array.isArray(parsed)) {
+        console.warn('test-results is not an array, resetting...')
+        return []
+      }
+      
+      return parsed
     } catch (error) {
       console.error('LocalStorage load error:', error)
-      return null
+      // ИСПРАВЛЕНО: Возвращаем пустой массив для test-results при ошибке
+      return key === 'test-results' ? [] : null
     }
   }
   
@@ -148,7 +164,6 @@ class LocalStorageAdapter {
   
   async clear() {
     try {
-      // Очищаем только наши ключи
       const keys = []
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
@@ -163,23 +178,6 @@ class LocalStorageAdapter {
       console.error('LocalStorage clear error:', error)
       return false
     }
-  }
-}
-
-// Заглушки для будущих адаптеров
-class IndexedDBAdapter extends LocalStorageAdapter {
-  // TODO: Реализация IndexedDB для больших объемов данных
-  constructor() {
-    super()
-    console.log('📊 IndexedDB adapter initialized (fallback to localStorage)')
-  }
-}
-
-class APIAdapter extends LocalStorageAdapter {
-  // TODO: Реализация для работы с сервером
-  constructor() {
-    super()
-    console.log('🌐 API adapter initialized (fallback to localStorage)')
   }
 }
 

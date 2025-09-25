@@ -124,4 +124,3 @@ defineEmits(['goBack'])
   }
 }
 </style>
-```

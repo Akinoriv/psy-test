@@ -7,13 +7,14 @@
         v-for="option in options"
         :key="option.value"
         class="single-choice__option"
-        :class="{ 'single-choice__option--selected': modelValue === option.value }"
+        :class="{ 'single-choice__option--selected': isSelected(option.value) }"
       >
         <input
           type="radio"
+          :name="`question-${Math.random()}`"
           :value="option.value"
-          :checked="modelValue === option.value"
-          @change="$emit('update:modelValue', option.value)"
+          :checked="isSelected(option.value)"
+          @change="selectOption(option.value)"
           class="single-choice__radio"
         />
         <span class="single-choice__label">{{ option.label }}</span>
@@ -23,7 +24,7 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   question: {
     type: String,
     required: true,
@@ -33,65 +34,75 @@ defineProps({
     required: true,
   },
   modelValue: {
-    type: [String, Number],
+    type: String,
     default: null,
   },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
+
+const isSelected = (value) => {
+  return props.modelValue === value
+}
+
+const selectOption = (value) => {
+  emit('update:modelValue', value)
+}
 </script>
 
 <style scoped>
 .single-choice {
-  margin-bottom: 32px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .single-choice__question {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 16px;
-  line-height: 1.4;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  line-height: var(--line-height-normal);
 }
 
 .single-choice__options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
 .single-choice__option {
   display: flex;
   align-items: center;
-  padding: 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  padding: var(--spacing-md);
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: white;
+  transition: var(--transition-fast);
+  background-color: var(--color-bg-primary);
 }
 
 .single-choice__option:hover {
-  border-color: #6366f1;
-  background-color: #f8faff;
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
 }
 
 .single-choice__option--selected {
-  border-color: #6366f1;
-  background-color: #eef2ff;
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
 }
 
 .single-choice__radio {
   width: 20px;
   height: 20px;
-  margin-right: 12px;
-  accent-color: #6366f1;
+  margin-right: var(--spacing-sm);
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 .single-choice__label {
-  font-size: 16px;
-  color: #374151;
-  line-height: 1.4;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
   flex: 1;
+  cursor: pointer;
 }
 </style>
