@@ -1,8 +1,8 @@
 <template>
-  <div class="input-group">
-    <label v-if="label" :for="inputId" class="input-group__label">
+  <div class="input-field">
+    <label v-if="label" :for="inputId" class="input-field__label">
       {{ label }}
-      <span v-if="required" class="input-group__required">*</span>
+      <span v-if="required" class="input-field__required">*</span>
     </label>
     <input
       :id="inputId"
@@ -16,10 +16,10 @@
       @focus="$emit('focus', $event)"
       @blur="$emit('blur', $event)"
     />
-    <div v-if="error" class="input-group__error">
+    <div v-if="error" class="input-field__error">
       {{ error }}
     </div>
-    <div v-if="hint && !error" class="input-group__hint">
+    <div v-if="hint && !error" class="input-field__hint">
       {{ hint }}
     </div>
   </div>
@@ -45,11 +45,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'focus', 'blur'])
 
 const inputId = computed(() => `input-${Math.random().toString(36).substr(2, 9)}`)
+
 const inputClasses = computed(() => {
-  const base = 'input-group__input'
-  const error = props.error ? 'input-group__input--error' : ''
-  const disabled = props.disabled ? 'input-group__input--disabled' : ''
-  return [base, error, disabled].filter(Boolean).join(' ')
+  return [
+    'input-field__input',
+    { 'input-field__input--error': props.error },
+    { 'input-field__input--disabled': props.disabled }
+  ]
 })
 
 function handleInput(e) {
@@ -58,66 +60,65 @@ function handleInput(e) {
 </script>
 
 <style scoped>
-.input-group {
-  margin-bottom: 16px;
+.input-field {
+  margin-bottom: var(--spacing-md);
 }
 
-.input-group__label {
+.input-field__label {
   display: block;
-  margin-bottom: 4px;
-  font-weight: 500;
-  color: #374151;
-  font-size: 14px;
+  margin-bottom: var(--spacing-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
 }
 
-.input-group__required {
-  color: #ef4444;
+.input-field__required {
+  color: var(--color-error);
   margin-left: 2px;
 }
 
-.input-group__input {
+.input-field__input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
   font-family: inherit;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-  background-color: white;
+  transition: var(--transition-fast);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
 }
 
-.input-group__input:focus {
+.input-field__input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--color-border-focus);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-.input-group__input--error {
-  border-color: #ef4444;
+.input-field__input--error {
+  border-color: var(--color-error);
 }
 
-.input-group__input--error:focus {
-  border-color: #ef4444;
+.input-field__input--error:focus {
+  border-color: var(--color-error);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
-.input-group__input--disabled {
-  background-color: #f9fafb;
+.input-field__input--disabled {
+  background-color: var(--color-bg-secondary);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.input-group__error {
-  margin-top: 4px;
-  color: #ef4444;
-  font-size: 12px;
+.input-field__error {
+  margin-top: var(--spacing-xs);
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
 }
 
-.input-group__hint {
-  margin-top: 4px;
-  color: #6b7280;
-  font-size: 12px;
+.input-field__hint {
+  margin-top: var(--spacing-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
 }
 </style>

@@ -16,11 +16,11 @@
                 <span class="icon">▼</span>
               </button>
 
-              <div v-if="showUserMenu" class="dropdown dropdown--right">
+              <div v-if="showUserMenu" class="dropdown">
                 <div class="dropdown__item">
                   <strong>{{ user.name }}</strong>
                 </div>
-                <div class="dropdown__item text--secondary">{{ user.email }}</div>
+                <div class="dropdown__item text text--secondary">{{ user.email }}</div>
                 <hr class="divider" />
                 <button @click="viewResults" class="dropdown__button">
                   <span class="icon">📊</span>
@@ -76,13 +76,15 @@
 
         <!-- Состояние загрузки -->
         <div v-if="isLoading" class="loading-state">
-          <div class="spinner"></div>
+          <div class="loading-state__icon">
+            <div class="spinner"></div>
+          </div>
           <p class="text">Загрузка тестов...</p>
         </div>
 
         <!-- Список тестов -->
         <section v-else class="tests-section">
-          <h2 class="section__title">Доступные тесты</h2>
+          <h2 class="heading heading--h2">Доступные тесты</h2>
 
           <div v-if="availableTests.length === 0" class="empty-state">
             <div class="empty-state__icon">🧪</div>
@@ -290,4 +292,4 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<!-- Без style scoped - используем универсальные классы -->
+<!-- Стили удалены - используем только универсальные классы -->

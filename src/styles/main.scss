@@ -1,7 +1,8 @@
 /* src/styles/main.scss - Главный файл импорта */
 
-@use './variables' as *;
-@use './base' as *;
-@use './components' as *;
-@use './layouts' as *;
-@use './utilities' as *;
+// Импортируем все файлы в правильном порядке с @use
+@use 'variables' as *;  // Переменные первыми
+@use 'base' as *;       // Сброс и базовые стили
+@use 'components' as *; // Универсальные компоненты
+@use 'layouts' as *;    // Лейауты и специфичные компоненты
+@use 'utilities' as *;  // Утилитарные классы последними

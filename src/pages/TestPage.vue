@@ -11,7 +11,7 @@
     />
 
     <main class="page__main">
-      <div class="container container--narrow">
+      <div class="container" :class="{ 'container--test': testStarted }">
         <!-- Стартовый экран -->
         <TestIntroduction
           v-if="!testStarted"
@@ -85,4 +85,4 @@ const {
 onMounted(initialize)
 </script>
 
-<!-- Без style scoped - используем универсальные классы -->
+<!-- Стили удалены - используем только универсальные классы -->

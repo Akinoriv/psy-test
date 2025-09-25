@@ -1,4 +1,4 @@
-/* src/styles/_layouts.scss - Лейауты страниц и специфичные компоненты */
+/* src/styles/_layouts.scss - Улучшенные лейауты для удобства */
 
 /* ===== БАЗОВЫЕ ЛЕЙАУТЫ ===== */
 
@@ -31,6 +31,14 @@
 
   &--narrow {
     max-width: 800px;
+  }
+
+  &--result {
+    max-width: 700px; /* Уменьшили для результатов */
+  }
+
+  &--test {
+    max-width: 900px; /* Расширили для тестов */
   }
 
   @media (max-width: 768px) {
@@ -267,12 +275,87 @@
   font-size: var(--font-size-sm);
 }
 
-/* ===== ИНТЕРФЕЙС ТЕСТИРОВАНИЯ ===== */
+/* ===== КОМПАКТНОЕ ВВЕДЕНИЕ К ТЕСТУ ===== */
+
+.test-introduction {
+  display: flex;
+  align-items: center;
+  min-height: 60vh;
+  padding: var(--spacing-2xl) 0;
+}
+
+.test-introduction-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+
+  &__icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  &__title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+  }
+
+  &__description {
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-relaxed);
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: var(--font-size-lg);
+  }
+
+  &__meta {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-2xl);
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-lg) 0;
+    border-top: 1px solid var(--color-border-primary);
+    border-bottom: 1px solid var(--color-border-primary);
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+      gap: var(--spacing-md);
+    }
+  }
+
+  &__meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  &__action {
+    margin-top: var(--spacing-lg);
+  }
+
+  @media (max-width: 768px) {
+    padding: var(--spacing-xl);
+    
+    &__title {
+      font-size: var(--font-size-2xl);
+    }
+  }
+}
+
+/* ===== ИНТЕРФЕЙС ТЕСТИРОВАНИЯ (УЛУЧШЕННЫЙ) ===== */
 
 .test-interface {
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: var(--spacing-2xl);
+  grid-template-columns: 1fr 280px;
+  gap: var(--spacing-xl);
   align-items: start;
 
   @media (max-width: 1024px) {
@@ -288,10 +371,14 @@
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-2xl);
   animation: slideInLeft 0.3s ease-out;
+  min-height: 480px; /* Фиксированная высота для предотвращения прыжков */
+  display: flex;
+  flex-direction: column;
 
   @media (max-width: 768px) {
     padding: var(--spacing-lg);
     border-radius: var(--radius-xl);
+    min-height: 400px;
   }
 }
 
@@ -325,13 +412,14 @@
 }
 
 .question-component {
-  margin-bottom: var(--spacing-2xl);
+  flex: 1;
+  margin-bottom: var(--spacing-xl);
 
   &__title {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
     line-height: var(--line-height-normal);
   }
 }
@@ -379,24 +467,28 @@
   }
 }
 
+/* ФИКСИРОВАННАЯ НАВИГАЦИЯ (НЕ ПРЫГАЕТ!) */
 .navigation {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: var(--spacing-lg);
+  padding: var(--spacing-lg) 0 0 0;
   border-top: 2px solid var(--color-bg-secondary);
   position: relative;
+  min-height: 60px; /* Фиксированная высота */
 
   &__btn {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
+    min-height: 44px; /* Фиксированная высота кнопок */
   }
 
   @media (max-width: 768px) {
     flex-direction: column;
     gap: var(--spacing-md);
     align-items: stretch;
+    min-height: 120px;
   }
 }
 
@@ -412,6 +504,7 @@
   font-weight: var(--font-weight-medium);
   border: 1px solid var(--color-warning);
   animation: pulse 2s infinite;
+  white-space: nowrap;
 
   @media (max-width: 768px) {
     position: static;
@@ -420,6 +513,8 @@
     text-align: center;
   }
 }
+
+/* ===== САЙДБАР С СОВЕТАМИ (УЛУЧШЕННЫЙ) ===== */
 
 .sidebar {
   display: flex;
@@ -437,12 +532,29 @@
   border: 1px solid var(--color-border-secondary);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
+  position: relative;
+  opacity: 0.8;
+  transition: var(--transition-normal);
+
+  &:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
 
   &__title {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text-primary);
     margin: 0 0 var(--spacing-xs) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+
+    &::before {
+      content: '💡';
+      font-size: var(--font-size-base);
+    }
   }
 
   &__text {
@@ -450,6 +562,17 @@
     color: var(--color-text-secondary);
     line-height: var(--line-height-relaxed);
     margin: 0;
+  }
+}
+
+/* Скрытый совет по умолчанию на мобильных */
+@media (max-width: 1024px) {
+  .help-card {
+    display: none;
+    
+    &--important {
+      display: block;
+    }
   }
 }
 

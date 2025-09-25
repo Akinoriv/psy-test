@@ -1,15 +1,24 @@
 <template>
-  <div class="result-page" v-if="testResult">
+  <div class="page" v-if="testResult">
     <!-- Хедер -->
-    <header class="result-page__header">
-      <div class="result-page__header-content">
-        <button @click="goToDashboard" class="btn btn--ghost">← К тестам</button>
-        <h1 class="result-page__title">Результаты теста</h1>
+    <header class="page__header">
+      <div class="container container--result">
+        <div class="header">
+          <div class="header__info">
+            <h1 class="heading heading--h2">Результаты теста</h1>
+          </div>
+          <div class="header__actions">
+            <button @click="goToDashboard" class="btn btn--ghost">
+              <span class="icon">←</span>
+              К тестам
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
-    <main class="result-page__main">
-      <div class="container">
+    <main class="page__main">
+      <div class="container container--result">
         <!-- Основной результат -->
         <BaseResultCard
           :test-result="enhancedTestResult"
@@ -19,15 +28,19 @@
         />
 
         <!-- Динамические секции результатов -->
-        <ResultSection v-for="section in resultSections" :key="section.id" :section="section" />
+        <ResultSection 
+          v-for="section in resultSections" 
+          :key="section.id" 
+          :section="section" 
+        />
 
         <!-- Действия -->
-        <div class="result-page__actions">
-          <button @click="goToDashboard" class="btn btn--primary btn--large">
+        <div class="flex justify-center gap-3 m-4">
+          <button @click="goToDashboard" class="btn btn--primary">
             Вернуться к тестам
           </button>
-          <button @click="retakeTest" class="btn btn--secondary btn--large">
-            Пройти тест заново
+          <button @click="retakeTest" class="btn btn--secondary">
+            Пройти заново
           </button>
         </div>
       </div>
@@ -36,17 +49,22 @@
 
   <!-- Состояние загрузки -->
   <div v-else-if="isLoading" class="loading-state">
-    <div class="spinner"></div>
-    <p>Загрузка результатов...</p>
+    <div class="loading-state__icon">
+      <div class="spinner"></div>
+    </div>
+    <h2 class="heading heading--h3">Загрузка результатов...</h2>
   </div>
 
   <!-- Ошибка -->
-  <div v-else class="error-state">
-    <div class="error-state__content">
-      <h2 class="heading heading--h2">Результаты не найдены</h2>
-      <p>Не удалось загрузить результаты теста. Возможно, результат не был сохранен.</p>
-      <button @click="goToDashboard" class="btn btn--primary">Вернуться к тестам</button>
-    </div>
+  <div v-else class="empty-state">
+    <div class="empty-state__icon">❌</div>
+    <h2 class="heading heading--h2">Результаты не найдены</h2>
+    <p class="text text--secondary text--center">
+      Не удалось загрузить результаты теста. Возможно, результат не был сохранен.
+    </p>
+    <button @click="goToDashboard" class="btn btn--primary">
+      Вернуться к тестам
+    </button>
   </div>
 </template>
 
@@ -319,3 +337,5 @@ onMounted(async () => {
   await loadTestResult()
 })
 </script>
+
+<!-- Стили удалены - используем только универсальные классы -->

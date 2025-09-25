@@ -1,106 +1,140 @@
 <template>
-  <div class="auth-page">
-    <div class="auth-page__container">
-      <div class="auth-page__header">
-        <h1 class="heading heading--h1">Добро пожаловать!</h1>
-        <p class="text text--secondary text--center">
-          Пройдите регистрацию, чтобы получить персонализированные психологические тесты
-        </p>
+  <div class="page">
+    <main class="page__main">
+      <div class="container container--narrow">
+        <div class="card">
+          <!-- Заголовок -->
+          <div class="text--center p-4">
+            <h1 class="heading heading--h1">Добро пожаловать!</h1>
+            <p class="text text--secondary">
+              Пройдите регистрацию, чтобы получить персонализированные психологические тесты
+            </p>
+          </div>
+
+          <!-- Форма -->
+          <form @submit.prevent="handleSubmit" class="flex flex-col gap-3">
+            <BaseInput
+              v-model="form.name"
+              label="Имя"
+              placeholder="Введите ваше имя"
+              required
+              :error="errors.name"
+            />
+
+            <BaseInput
+              v-model="form.email"
+              type="email"
+              label="Email"
+              placeholder="example@email.com"
+              required
+              :error="errors.email"
+            />
+
+            <BaseInput
+              v-model="form.age"
+              type="number"
+              label="Возраст"
+              placeholder="25"
+              required
+              :error="errors.age"
+            />
+
+            <!-- Пол -->
+            <div class="form-field">
+              <label class="form-field__label">Пол</label>
+              <div class="flex gap-2">
+                <label class="option option--radio">
+                  <input 
+                    type="radio" 
+                    value="male" 
+                    v-model="form.gender" 
+                    class="option__input" 
+                  />
+                  <span class="option__label">Мужской</span>
+                </label>
+                <label class="option option--radio">
+                  <input
+                    type="radio"
+                    value="female"
+                    v-model="form.gender"
+                    class="option__input"
+                  />
+                  <span class="option__label">Женский</span>
+                </label>
+                <label class="option option--radio">
+                  <input 
+                    type="radio" 
+                    value="other" 
+                    v-model="form.gender" 
+                    class="option__input" 
+                  />
+                  <span class="option__label">Другой</span>
+                </label>
+              </div>
+              <div v-if="errors.gender" class="text text--error">
+                {{ errors.gender }}
+              </div>
+            </div>
+
+            <BaseInput
+              v-model="form.occupation"
+              label="Род деятельности"
+              placeholder="Например: Программист, Студент, Учитель"
+              :error="errors.occupation"
+            />
+
+            <!-- Согласие на обработку данных -->
+            <div class="form-field">
+              <label class="flex items-start gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  v-model="form.dataConsent" 
+                  class="option__input" 
+                  required 
+                />
+                <span class="text text--sm">
+                  Я согласен(а) на сбор и обработку персональных данных в соответствии с
+                  <a href="#" class="text-primary">Политикой конфиденциальности</a>. 
+                  Данные будут использованы исключительно для анализа результатов тестирования 
+                  и улучшения качества сервиса.
+                </span>
+              </label>
+              <div v-if="errors.dataConsent" class="text text--error">
+                {{ errors.dataConsent }}
+              </div>
+            </div>
+
+            <!-- Согласие на исследования -->
+            <div class="form-field">
+              <label class="flex items-start gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  v-model="form.researchConsent" 
+                  class="option__input" 
+                />
+                <span class="text text--sm text--secondary">
+                  Я согласен(а) на использование анонимных данных для научных исследований 
+                  в области психологии (не обязательно)
+                </span>
+              </label>
+            </div>
+
+            <BaseButton 
+              type="submit" 
+              :disabled="isLoading" 
+              full-width 
+              class="m-2"
+            >
+              {{ isLoading ? 'Регистрируем...' : 'Зарегистрироваться' }}
+            </BaseButton>
+
+            <div v-if="errors.submit" class="text text--error text--center">
+              {{ errors.submit }}
+            </div>
+          </form>
+        </div>
       </div>
-
-      <form @submit.prevent="handleSubmit" class="form">
-        <BaseInput
-          v-model="form.name"
-          label="Имя"
-          placeholder="Введите ваше имя"
-          required
-          :error="errors.name"
-        />
-
-        <BaseInput
-          v-model="form.email"
-          type="email"
-          label="Email"
-          placeholder="example@email.com"
-          required
-          :error="errors.email"
-        />
-
-        <BaseInput
-          v-model="form.age"
-          type="number"
-          label="Возраст"
-          placeholder="25"
-          required
-          :error="errors.age"
-        />
-
-        <div class="form__field">
-          <label class="form__label">Пол</label>
-          <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" value="male" v-model="form.gender" class="radio-option__input" />
-              <span class="radio-option__label">Мужской</span>
-            </label>
-            <label class="radio-option">
-              <input
-                type="radio"
-                value="female"
-                v-model="form.gender"
-                class="radio-option__input"
-              />
-              <span class="radio-option__label">Женский</span>
-            </label>
-            <label class="radio-option">
-              <input type="radio" value="other" v-model="form.gender" class="radio-option__input" />
-              <span class="radio-option__label">Другой</span>
-            </label>
-          </div>
-          <div v-if="errors.gender" class="form__error">
-            {{ errors.gender }}
-          </div>
-        </div>
-
-        <BaseInput
-          v-model="form.occupation"
-          label="Род деятельности"
-          placeholder="Например: Программист, Студент, Учитель"
-          :error="errors.occupation"
-        />
-
-        <div class="consent">
-          <label class="consent__label">
-            <input type="checkbox" v-model="form.dataConsent" class="consent__checkbox" required />
-            <span class="consent__text">
-              Я согласен(а) на сбор и обработку персональных данных в соответствии с
-              <a href="#" class="link">Политикой конфиденциальности</a>. Данные будут использованы
-              исключительно для анализа результатов тестирования и улучшения качества сервиса.
-            </span>
-          </label>
-          <div v-if="errors.dataConsent" class="form__error">
-            {{ errors.dataConsent }}
-          </div>
-        </div>
-
-        <div class="consent">
-          <label class="consent__label">
-            <input type="checkbox" v-model="form.researchConsent" class="consent__checkbox" />
-            <span class="consent__text">
-              Я согласен(а) на использование анонимных данных для научных исследований в области
-              психологии (не обязательно)
-            </span>
-          </label>
-        </div>
-
-        <BaseButton type="submit" :disabled="isLoading" full-width class="form__submit">
-          {{ isLoading ? 'Регистрируем...' : 'Зарегистрироваться' }}
-        </BaseButton>
-
-        <div v-if="errors.submit" class="form__error form__error--submit">
-          {{ errors.submit }}
-        </div>
-      </form>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -213,3 +247,30 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.text--error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-top: 0.25rem;
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+</style>

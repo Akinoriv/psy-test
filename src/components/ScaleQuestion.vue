@@ -1,14 +1,16 @@
 <template>
-  <div class="scale-question">
-    <h3 class="scale-question__question">{{ question }}</h3>
+  <div class="question-component">
+    <h3 class="question-component__title">{{ question }}</h3>
 
-    <div class="scale-question__container">
-      <div class="scale-question__labels" v-if="scale.labels">
-        <span class="scale-question__label-start">{{ scale.labels[scale.min] }}</span>
-        <span class="scale-question__label-end">{{ scale.labels[scale.max] }}</span>
+    <div class="scale-question">
+      <!-- Лейблы для крайних значений -->
+      <div v-if="scale.labels" class="scale-question__labels">
+        <span class="text text--secondary text--sm">{{ scale.labels[scale.min] }}</span>
+        <span class="text text--secondary text--sm">{{ scale.labels[scale.max] }}</span>
       </div>
 
-      <div class="scale-question__scale">
+      <!-- Шкала значений -->
+      <div class="scale-question__options">
         <label
           v-for="value in scaleValues"
           :key="value"
@@ -20,13 +22,11 @@
             :value="value"
             :checked="modelValue === value"
             @change="$emit('update:modelValue', value)"
-            class="scale-question__radio"
+            class="scale-question__input"
           />
           <span class="scale-question__value">{{ value }}</span>
         </label>
       </div>
-
-      <div class="scale-question__current" v-if="modelValue">Выбрано: {{ modelValue }}</div>
     </div>
   </div>
 </template>
@@ -63,37 +63,23 @@ const scaleValues = computed(() => {
 
 <style scoped>
 .scale-question {
-  margin-bottom: 32px;
-}
-
-.scale-question__question {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 16px;
-  line-height: 1.4;
-}
-
-.scale-question__container {
-  background-color: #f9fafb;
-  border-radius: 12px;
-  padding: 20px;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .scale-question__labels {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
+  margin-bottom: var(--spacing-md);
 }
 
-.scale-question__scale {
+.scale-question__options {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .scale-question__option {
@@ -101,22 +87,24 @@ const scaleValues = computed(() => {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .scale-question__option:hover .scale-question__value {
-  background-color: #6366f1;
+  background-color: var(--color-primary);
   color: white;
 }
 
 .scale-question__option--selected .scale-question__value {
-  background-color: #6366f1;
+  background-color: var(--color-primary);
   color: white;
   transform: scale(1.1);
 }
 
-.scale-question__radio {
-  display: none;
+.scale-question__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .scale-question__value {
@@ -125,17 +113,15 @@ const scaleValues = computed(() => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 2px solid #e5e7eb;
-  border-radius: 50%;
-  font-weight: 600;
-  background-color: white;
-  color: #374151;
-  transition: all 0.2s ease;
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: var(--transition-fast);
 }
 
-.scale-question__current {
-  text-align: center;
-  font-weight: 500;
-  color: #6366f1;
+.text--primary {
+  color: var(--color-primary);
 }
 </style>

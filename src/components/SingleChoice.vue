@@ -6,7 +6,7 @@
       <label
         v-for="option in options"
         :key="option.value"
-        class="option option--radio"
+        class="option"
         :class="{ 'option--selected': isSelected(option.value) }"
       >
         <input
@@ -17,7 +17,6 @@
           @change="selectOption(option.value)"
           class="option__input"
         />
-        <div class="option__indicator"></div>
         <span class="option__label">{{ option.label }}</span>
       </label>
     </div>
@@ -51,4 +50,4 @@ const selectOption = (value) => {
 }
 </script>
 
-<!-- Без style scoped - используем универсальные классы -->
+<!-- Стили удалены - используем только универсальные классы из _layouts.scss -->
